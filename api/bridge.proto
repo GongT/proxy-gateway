@@ -1,0 +1,22 @@
+syntax = "proto3";
+package bridge_api_call;
+
+message EmptyRequest {
+}
+message EmptyResponse {
+}
+
+service ConnectionBridge {
+	rpc openTCP (openMessage) returns (protoId) {
+	}
+
+	rpc openUnix (openMessage) returns (protoId) {
+	}
+}
+
+message openMessage {
+	string address = 1;
+}
+message protoId {
+	uint32 id = 1;
+}
