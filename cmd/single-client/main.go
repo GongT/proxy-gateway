@@ -29,19 +29,6 @@ func main() {
 	if len(remote) <= 0 {
 		usage("invalid remote addr")
 	}
-	host, port := my_strings.NormalizeServer(&remote)
-
-	addr := net.ParseIP(host)
-	if addr == nil {
-		ips, err := net.LookupIP(remote)
-		if err != nil || len(ips) == 0 {
-			log.Fatal("Cannot resolve host: " + remote)
-		}
-
-		log.Printf("resolved host %s IP: %s", remote, ips)
-		log.Println("using first one.")
-		addr = ips[0]
-	}
 
 	listen, err := net_multiplex.ParseAddress(lpListen, "0.0.0.0")
 	if err != nil {
@@ -52,7 +39,9 @@ func main() {
 		usage("invalid argument connect: ", err)
 	}
 
-	remoteFull := addr.String() + ":" + port
+	host, port := my_strings.NormalizeServer(&remote)
+	host, _ = my_strings.GetIp(host)
+	remoteFull := host + ":" + port
 
 	log.Printf("configuration: all connection to %s on the remote host %s, will pass to %s on local network.\n", listen.String(), remoteFull, connect.String())
 

@@ -7,6 +7,9 @@ import (
 	"log"
 	"github.com/gongt/proxy-gateway/internal/systemd"
 	"github.com/gongt/proxy-gateway/internal/config/client_config"
+	"net"
+	"github.com/gongt/proxy-gateway/internal/kcptun"
+	"github.com/gongt/proxy-gateway/internal/my-strings"
 )
 
 func main() {
@@ -14,7 +17,16 @@ func main() {
 
 	client_config.ApplyProxy(configs.Proxy, true)
 
-	conn := net_multiplex.DialTCP(configs.Server)
+	host, port := my_strings.NormalizeServer(&configs.Server)
+	host, _ = my_strings.GetIp(host)
+	serverAddr := host + ":" + port
+
+	var conn net.Conn
+	if len(configs.Kcptun) == 0 {
+		conn = net_multiplex.DialTCP(serverAddr)
+	} else {
+		conn = kcptun.DialKCP(serverAddr, configs.Kcptun)
+	}
 	log.Println("connected.")
 	c := client.NewMultiplexClient(conn)
 

@@ -28,7 +28,7 @@ func dial(dialer proxy.Dialer, connect net.Addr, t time.Duration) (ret net.Conn,
 	done := make(chan byte)
 	tmr := time.NewTimer(t)
 
-	log.Printf("connecting to: %s...\n", connect.String())
+	log.Printf("[TCP] connecting to: %s...\n", connect.String())
 
 	go func() {
 		<-tmr.C

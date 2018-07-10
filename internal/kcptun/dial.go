@@ -10,6 +10,8 @@ import (
 func DialKCP(address string, password string) net.Conn {
 	encrypt := HashKcpPass(password)
 
+	log.Printf("[KCPTUN] connecting to: %s...\n", address)
+
 	kcpconn, err := kcp.DialWithOptions(address, encrypt, constants.KcpDataShards, constants.KcpParityShards)
 
 	if err != nil {
