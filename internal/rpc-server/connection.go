@@ -7,6 +7,10 @@ import (
 	"log"
 )
 
+func (s *ConnectionBridgeServer) KeepAlive(ctx context.Context, msg *bridge_api_call.Empty) (ret *bridge_api_call.Empty, err error) {
+	return &bridge_api_call.Empty{}, nil
+}
+
 func (s *ConnectionBridgeServer) OpenTCP(ctx context.Context, msg *bridge_api_call.OpenMessage) (ret *bridge_api_call.ProtoId, err error) {
 	return s.listen("tcp", msg.Address)
 }

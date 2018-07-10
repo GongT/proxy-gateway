@@ -7,8 +7,14 @@ import (
 )
 
 func BridgeConnectionSync(A net.Conn, aName string, B net.Conn, bName string) {
+	if A == nil {
+		log.Fatal("A (" + aName + ") is nil !!!")
+	}
+	if B == nil {
+		log.Fatal("B (" + bName + ") is nil !!!")
+	}
 	go sync('A', 'B', A, aName, B, bName)
-	sync('B', 'A', B, bName, A, aName)
+	go sync('B', 'A', B, bName, A, aName)
 }
 
 func sync(l byte, r byte, left net.Conn, leftName string, right net.Conn, rightName string) {

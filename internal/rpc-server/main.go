@@ -51,7 +51,9 @@ func (s *ConnectionBridgeServer) Start() {
 	} else {
 		log.Println("rpc server stopped.")
 	}
+	s.rpc.Stop()
 	s.Close()
+	log.Println("rpc server finished.")
 }
 
 func (s *ConnectionBridgeServer) Close() {
@@ -65,8 +67,8 @@ func (s *ConnectionBridgeServer) Close() {
 	s.rpc.Stop()
 	s.conn.Close()
 
-	s.done <- 0
 	close(s.done)
+	close(s.request)
 }
 
 func (s *ConnectionBridgeServer) Done() <-chan byte {

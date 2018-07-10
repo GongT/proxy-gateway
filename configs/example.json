@@ -1,0 +1,17 @@
+{
+	"server"   : "example.com",
+	"openPorts": [
+		{
+			"listen" : {
+				"type"   : "unix",
+				"address": "@/tmp/.X11-unix/X0"
+			},
+			"connect": {
+				"type"   : "tcp",
+				"address": "some-local-domain:6000"
+			}
+		}
+	],
+	"kcptun"   : "your-password-here",
+	"proxy"    : "socks5://127.0.0.1:7070"
+}

@@ -1,0 +1,11 @@
+[Unit]
+Description=universal reverse proxy server
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=notify
+ExecStart=/usr/local/bin/proxy-client --systemd --config /etc/proxy-ports/default.json
+
+[Install]
+WantedBy=multi-user.target

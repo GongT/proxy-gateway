@@ -9,6 +9,7 @@ import (
 	"github.com/gongt/proxy-gateway/internal/net-multiplex"
 	"encoding/binary"
 	"fmt"
+	"github.com/gongt/proxy-gateway/internal/prof"
 )
 
 type MultiplexServer struct {
@@ -40,7 +41,9 @@ func (m *MultiplexServer) Handle() {
 		}
 	}()
 
+	prof.Snapshot("new conn")
 	server.Start()
+	prof.Snapshot("conn fin")
 }
 
 func (m *MultiplexServer) handleChannel(target rpc_server.ConnectionTarget) {

@@ -16,7 +16,7 @@ import (
 
 type MultiplexClient struct {
 	client  bridge_api_call.ConnectionBridgeClient
-	mapper  map[uint32]*net_multiplex.NaiveAddr
+	mapper  map[uint32]net.Addr
 	session *yamux.Session
 }
 
@@ -37,12 +37,22 @@ func NewMultiplexClient(conn net.Conn) *MultiplexClient {
 
 	return &MultiplexClient{
 		client:  client,
-		mapper:  make(map[uint32]*net_multiplex.NaiveAddr),
+		mapper:  make(map[uint32]net.Addr),
 		session: session,
 	}
 }
 
-func (m *MultiplexClient) OpenTCP(remote string, connect *net_multiplex.NaiveAddr) uint32 {
+func (m *MultiplexClient) Open(from, to net.Addr) uint32 {
+	if from.Network() == "tcp" {
+		log.Println("connecting with OpenTCP.")
+		return m.OpenTCP(from.String(), to)
+	} else {
+		log.Println("connecting with OpenUnix.")
+		return m.OpenUnix(from.String(), to)
+	}
+}
+
+func (m *MultiplexClient) OpenTCP(remote string, connect net.Addr) uint32 {
 	typeId, err := m.client.OpenTCP(context.Background(), &bridge_api_call.OpenMessage{Address: remote})
 	if err != nil {
 		log.Fatal(err)
@@ -51,7 +61,7 @@ func (m *MultiplexClient) OpenTCP(remote string, connect *net_multiplex.NaiveAdd
 	return typeId.Id
 }
 
-func (m *MultiplexClient) OpenUnix(remote string, connect *net_multiplex.NaiveAddr) uint32 {
+func (m *MultiplexClient) OpenUnix(remote string, connect net.Addr) uint32 {
 	typeId, err := m.client.OpenUnix(context.Background(), &bridge_api_call.OpenMessage{Address: remote})
 	if err != nil {
 		log.Fatal(err)
@@ -78,29 +88,34 @@ func (m *MultiplexClient) EventLoop() {
 }
 
 func (m *MultiplexClient) handle(conn net.Conn) {
-	defer conn.Close()
-
 	var id uint32
 
 	err := binary.Read(conn, binary.LittleEndian, &id)
-	log.Printf("<<< %v", id)
 	if err != nil {
 		duplicateMessage(conn, "read typeId failed:", err)
+		conn.Close()
 		return
 	}
 
 	localConnect, ok := m.mapper[id]
 	if !ok {
 		duplicateMessage(conn, "invalid typeId:", id)
+		conn.Close()
 		return
 	}
 
-	log.Printf("type id is %d, connecting to %s\n", id, localConnect.String())
+	log.Printf("type id is %d\n", id)
 
-	t, err := net_multiplex.Dial(localConnect, 10*time.Second)
+	t, err := net_multiplex.Dial(localConnect)
 	if err != nil {
 		log.Println("failed to connect local:", err)
 		fmt.Fprintln(conn, "target connection to %s failed: %s.\n", localConnect.String(), err.Error())
+		conn.Close()
+		return
+	}
+	if t == nil {
+		log.Println("not connected, but no error.")
+		conn.Close()
 		return
 	}
 

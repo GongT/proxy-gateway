@@ -1,17 +1,18 @@
 syntax = "proto3";
 package bridge_api_call;
 
-message EmptyRequest {
-}
-message EmptyResponse {
-}
-
 service ConnectionBridge {
 	rpc openTCP (openMessage) returns (protoId) {
 	}
 
 	rpc openUnix (openMessage) returns (protoId) {
 	}
+
+	rpc keepAlive (empty) returns (empty) {
+	}
+}
+
+message empty {
 }
 
 message openMessage {

@@ -2,28 +2,51 @@ package net_multiplex
 
 import (
 	"time"
-	"context"
 	"net"
+	"log"
+	"github.com/gongt/proxy-gateway/internal/config/client_config"
+	"golang.org/x/net/proxy"
+	"errors"
 )
 
-func backgroundWithTimeout(t time.Duration) (ret context.Context) {
-	return ret
+func DialTCP(server string) (ret net.Conn) {
+	ret, err := dial(client_config.GlobalDialer, &NaiveAddr{
+		network: "tcp",
+		address: server,
+	}, 10*time.Second)
+	if err != nil {
+		log.Fatal("failed to connect to "+server+", ", err)
+	}
+	return
+}
+func Dial(server net.Addr) (ret net.Conn, err error) {
+	return dial(client_config.GlobalDialer, server, 10*time.Second)
 }
 
-func Dial(connect *NaiveAddr, t time.Duration) (ret net.Conn, err error) {
-	ctx, cancel := context.WithCancel(context.Background())
-
+func dial(dialer proxy.Dialer, connect net.Addr, t time.Duration) (ret net.Conn, err error) {
+	hasDone := false
+	done := make(chan byte)
 	tmr := time.NewTimer(t)
+
+	log.Printf("connecting to: %s...\n", connect.String())
 
 	go func() {
 		<-tmr.C
-		cancel()
+		if !hasDone {
+			hasDone = true
+			err = errors.New("timeout")
+		}
+		close(done)
 	}()
 
-	var d net.Dialer
-	ret, err = d.DialContext(ctx, connect.Network, connect.Address)
+	go func() {
+		ret, err = dialer.Dial(connect.Network(), connect.String())
+		hasDone = true
+		close(done)
+		tmr.Stop()
+	}()
 
-	tmr.Stop()
+	<-done
 
 	return
 }

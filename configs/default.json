@@ -1,0 +1,5 @@
+{
+	"kcptun"   : "your-password",
+	"server"   : "",
+	"openPorts": []
+}
