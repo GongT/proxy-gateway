@@ -11,7 +11,7 @@ import (
 func HashKcpPass(key string) kcp.BlockCrypt {
 	password := pbkdf2.Key([]byte(key), []byte(constants.Salt), 4096, 32, sha1.New)
 
-	encrypt, err := kcp.NewTripleDESBlockCrypt(password)
+	encrypt, err := kcp.NewTripleDESBlockCrypt(password[:24])
 	if err != nil {
 		log.Fatal("failed to create kcptun crypt: ", err)
 	}
