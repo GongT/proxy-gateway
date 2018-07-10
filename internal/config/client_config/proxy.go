@@ -12,57 +12,87 @@ var GlobalDialer proxy.Dialer = proxy.Direct
 
 type ProxySetting struct {
 	str string
-	url url.URL
+	url *url.URL
+	env bool
 }
 
 var NoProxy = ProxySetting{str: ""}
 
 func (m ProxySetting) MarshalJSON() ([]byte, error) {
-	buff := bytes.NewBufferString("")
-	buff.WriteByte('"')
-	buff.WriteString(m.url.String())
-	buff.WriteByte('"')
-	return buff.Bytes(), nil
+	if m.url != nil {
+		buff := bytes.NewBufferString("")
+		buff.WriteByte('"')
+		buff.WriteString(m.str)
+		buff.WriteByte('"')
+		return buff.Bytes(), nil
+	}
+	if m.env {
+		return []byte("true"), nil
+	} else {
+		return []byte("false"), nil
+	}
 }
 
 func (m *ProxySetting) UnmarshalJSON(b []byte) error {
-	var s string
-	err := json.Unmarshal(b, &s)
+	var s = ""
+	var e = true
+	var u *url.URL = nil
+
+	err := json.Unmarshal(b, &e)
+	if err == nil {
+		*m = ProxySetting{
+			str: s,
+			url: u,
+			env: e,
+		}
+		return nil
+	} else {
+		if _, ok := err.(*json.UnmarshalTypeError); ok {
+			err = nil
+		} else {
+			return err
+		}
+	}
+
+	err = json.Unmarshal(b, &s)
 	if err != nil {
 		return err
 	}
-	u, err := url.Parse(s)
-	if err != nil {
-		return err
+
+	if len(s) > 0 {
+		u, err = url.Parse(s)
+		if err != nil {
+			return err
+		}
 	}
+
 	*m = ProxySetting{
 		str: s,
-		url: *u,
+		url: u,
+		env: e,
 	}
+
 	return nil
 }
 
-func ApplyProxy(setting ProxySetting, useEnv bool) (dial proxy.Dialer, err error) {
-	if len(setting.str) == 0 {
-		if useEnv {
-			dial, err = proxy.FromEnvironment(), nil
-			if dial == proxy.Direct {
-				log.Println("not using a proxy.")
+func ApplyProxy(setting ProxySetting, useEnv bool) {
+	if setting.url == nil {
+		if useEnv && setting.env {
+			GlobalDialer = proxy.FromEnvironment()
+			if GlobalDialer == proxy.Direct {
+				log.Println("not using a proxy (no env set).")
 			} else {
 				log.Println("using proxy server from environment:", setting.url.String())
 			}
 		} else {
-			log.Println("not using a proxy.")
+			log.Println("not using a proxy (disabled in config).")
 		}
 	} else {
-		dial, err = proxy.FromURL(&setting.url, proxy.Direct)
+		var err error
+		GlobalDialer, err = proxy.FromURL(setting.url, proxy.Direct)
+		if err != nil {
+			log.Fatal("proxy setting error: ", err)
+		}
 		log.Println("using proxy server:", setting.url.String())
 	}
-	if err != nil {
-		log.Fatal("proxy setting error: ", err)
-	}
-
-	GlobalDialer = dial
-
-	return
 }
